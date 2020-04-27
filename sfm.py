@@ -2,12 +2,13 @@ import os, cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import svds
+from scipy.spatial import Delaunay
 from collections import defaultdict
 print("Load libraries success")
 
 INPUT_DIR = "./input/"
-IMG_SCALE_PERCENT = 20
-FEATURE_ALGO = "SURF"
+IMG_SCALE_PERCENT = 100
+FEATURE_ALGO = "SIFT"
 
 def getImages(directory):
 	files = os.listdir(directory)
@@ -157,6 +158,48 @@ def plot3d(points):
 	ax.set_zlabel("z")
 	plt.show()
 
+def plotDelaunay(points):
+	points = points.T
+	x, y, z = [], [], []
+	for point in points:
+		x.append(point[0])
+		y.append(point[1])
+		z.append(point[2])
+	x = np.array(x)
+	y = np.array(y)
+	z = np.array(z)
+	tri = Delaunay(np.array([x,y]).T)
+	print("=== [TEST] Vertice")
+	for v in tri.simplices:
+		print(f"=== [TEST] [{v[0]}, {v[1]}, {v[2]}]")
+	
+	print("=== [TEST] points")
+	for i in range(x.shape[0]):
+		print(f"[{x[i]}, {y[i]}, {z[i]}]")
+	fig = plt.figure()
+	ax = fig.add_subplot(1, 1, 1, projection='3d')
+	ax.plot_trisurf(x, y, z, triangles=tri.simplices)
+	plt.show()
+
+def generatePlyFile(points):
+	points = points.T
+	print(f"=== {points.shape}")
+	f = open("output.ply", "w")
+	f.write("ply\n")
+	f.write("format ascii 1.0\n")
+	f.write("comment written by Dennis Cheung\n")
+	f.write(f"element vertex {points.shape[0]}\n")
+	f.write("property float32 x\n")
+	f.write("property float32 y\n")
+	f.write("property float32 z\n")
+	f.write("property uchar red\n")
+	f.write("property uchar green\n")
+	f.write("property uchar blue\n")
+	f.write("end_header\n")
+	for p in points:
+		f.write(f"{p[0]} {p[1]} {p[2]} 255 0 0\n")
+	f.close()
+
 if __name__ == "__main__":
 	frames = getImages(INPUT_DIR)
 	print(f"=== [TEST] {len(frames)} frames are found...")
@@ -173,3 +216,5 @@ if __name__ == "__main__":
 	print(f"=== [TEST] RH.shape = {RH.shape}; SH.shape = {SH.shape}")
 	
 	plot3d(SH)	
+	plotDelaunay(SH)
+	generatePlyFile(SH)
