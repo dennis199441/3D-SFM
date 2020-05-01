@@ -116,9 +116,6 @@ def getSingularMatrix(S):
 		mat[i][i] = v
 	return mat
 
-def subFactorizationLinear(Mhat, F):
-	pass	
-
 def factorization(xt):
 	numFeatures = len(xt[0])
 	for x in xt:
@@ -138,9 +135,6 @@ def factorization(xt):
 	S2 = np.sqrt(S)
 	RH = np.matmul(U, S2) # Affine rotation
 	SH = np.matmul(S2, V) # Model structure
-	#Q = subFactorizationLinear(SH, 2*len(exs)))i
-	#R = np.matmul(RH, Q)
-	#S = np.matmul(np.linalg.pinv(Q), SH)
 	return RH, SH
 
 def plot3d(points):
@@ -204,9 +198,9 @@ if __name__ == "__main__":
 	frames = getImages(INPUT_DIR)
 	print(f"=== [TEST] {len(frames)} frames are found...")
 
-	for p, f in frames:
-		print(f"=== [TEST] featureDetection: {p} [START]")
-		featureDetection(f, algo=FEATURE_ALGO)
+#	for p, f in frames:
+#		print(f"=== [TEST] featureDetection: {p} [START]")
+#		featureDetection(f, algo=FEATURE_ALGO)
 
 	print("=== [TEST] featureMatching")
 	ptss = featureMatching(frames, algo=FEATURE_ALGO)
