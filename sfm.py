@@ -7,7 +7,7 @@ from collections import defaultdict
 print("Load libraries success")
 
 INPUT_DIR = "./input/"
-IMG_SCALE_PERCENT = 100
+IMG_SCALE_PERCENT = 20
 FEATURE_ALGO = "SIFT"
 
 def getImages(directory):
@@ -17,7 +17,6 @@ def getImages(directory):
 	for f in files:
 		if "jpg" in f.lower() or "png" in f.lower():
 			fullPath = directory+ f
-			print(f"=== [TEST] Loading {fullPath}...")
 			img = cv2.imread(fullPath)
 			width = int(img.shape[1] * IMG_SCALE_PERCENT / 100)	
 			height = int(img.shape[0] * IMG_SCALE_PERCENT / 100)
@@ -79,14 +78,13 @@ def featureMatching(frames, algo="SIFT"):
 			toRemove.append(k)
 	for k in toRemove:
 		del featureMap[k]
-	print(f"=== [TEST] featureMap: number of feature = {len(featureMap)}")
 	ptss = [[] for i in range(len(frames))]
 	for k, points in featureMap.items():
 		for i, point in enumerate(points):
 			ptss[i].append(point)
 	return ptss	
 
-def _elimateTranslation(x, numFeatures):
+def _elimate(x, numFeatures):
 	sum_u, sum_v = 0, 0
 	for u, v in x:
 		sum_u += u
@@ -116,21 +114,21 @@ def getSingularMatrix(S):
 		mat[i][i] = v
 	return mat
 
-def factorization(xt):
+def elimateTranslation(xt):
 	numFeatures = len(xt[0])
 	for x in xt:
 		assert(len(x) == numFeatures)
 	
 	exs = [] # len(exs) = number of frames
 	for x in xt:
-		ex = _elimateTranslation(x, numFeatures)
+		ex = _elimate(x, numFeatures)
 		exs.append(ex)
-	
+	return exs
+
+def factorization(exs, numFeatures):	
 	# W is a 2*len(exs) by numFeatures matrix
 	W = _buildMeasurementMatrix(exs, numFeatures)
-	print(f"=== [TEST] _buildMeasurementMatrix: W.shape = {W.shape}")
 	U, S, V = svds(W, k=3) # Note: S is singular VECTOR
-	print(f"=== [TEST] svds U.shape = {U.shape}; S.shape = {S.shape}; V.shape = {V.shape}")
 	S = getSingularMatrix(S)
 	S2 = np.sqrt(S)
 	RH = np.matmul(U, S2) # Affine rotation
@@ -163,13 +161,6 @@ def plotDelaunay(points):
 	y = np.array(y)
 	z = np.array(z)
 	tri = Delaunay(np.array([x,y]).T)
-	print("=== [TEST] Vertice")
-	for v in tri.simplices:
-		print(f"=== [TEST] [{v[0]}, {v[1]}, {v[2]}]")
-	
-	print("=== [TEST] points")
-	for i in range(x.shape[0]):
-		print(f"[{x[i]}, {y[i]}, {z[i]}]")
 	fig = plt.figure()
 	ax = fig.add_subplot(1, 1, 1, projection='3d')
 	ax.plot_trisurf(x, y, z, triangles=tri.simplices)
@@ -177,7 +168,6 @@ def plotDelaunay(points):
 
 def generatePlyFile(points):
 	points = points.T
-	print(f"=== {points.shape}")
 	f = open("output.ply", "w")
 	f.write("ply\n")
 	f.write("format ascii 1.0\n")
@@ -194,21 +184,39 @@ def generatePlyFile(points):
 		f.write(f"{p[0]} {p[1]} {p[2]} 255 0 0\n")
 	f.close()
 
+def testMatch(img1, img2):
+	algoObj, idxParams = _getAlgoObjAndIndex(algo=FEATURE_ALGO)
+	kp1, des1 = algoObj.detectAndCompute(img1,None)
+	kp2, des2 = algoObj.detectAndCompute(img2,None)
+
+	# FLANN parameters
+	FLANN_INDEX_KDTREE = 0
+	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+	search_params = dict(checks=50)   # or pass empty dictionary
+
+	flann = cv2.FlannBasedMatcher(index_params,search_params)
+	matches = flann.knnMatch(des1,des2,k=2)
+	# Need to draw only good matches, so create a mask
+	matchesMask = [[0,0] for i in range(len(matches))]
+	# ratio test as per Lowe's paper
+	for i,(m,n) in enumerate(matches):
+		if m.distance < 0.7*n.distance:
+			matchesMask[i]=[1,0]
+	draw_params = dict(matchColor = (0,255,0), singlePointColor = (255,0,0), matchesMask = matchesMask,flags = 0)
+
+	img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,matches,None,**draw_params)
+
+	plt.imshow(img3,)
+	plt.show()
+
+
 if __name__ == "__main__":
 	frames = getImages(INPUT_DIR)
-	print(f"=== [TEST] {len(frames)} frames are found...")
-
-#	for p, f in frames:
-#		print(f"=== [TEST] featureDetection: {p} [START]")
-#		featureDetection(f, algo=FEATURE_ALGO)
-
-	print("=== [TEST] featureMatching")
+	featureDetection(frames[0][1], algo=FEATURE_ALGO) # feature detection example
+	testMatch(frames[0][1], frames[1][1]) # feature matching example
 	ptss = featureMatching(frames, algo=FEATURE_ALGO)
-
-	print(f"=== [TEST] factorization: {len(ptss)} frames, {len(ptss[0])} features")
-	RH, SH = factorization(ptss)
-	print(f"=== [TEST] RH.shape = {RH.shape}; SH.shape = {SH.shape}")
-	
+	exs = elimateTranslation(ptss)
+	RH, SH = factorization(exs, len(exs[0]))
 	plot3d(SH)	
 	plotDelaunay(SH)
 	generatePlyFile(SH)
