@@ -214,7 +214,11 @@ def testMatch(img1, img2):
 if __name__ == "__main__":
 	frames = getImages(INPUT_DIR)
 	# featureDetection(frames[0][1], algo=FEATURE_ALGO) # feature detection example
+	# featureDetection(frames[1][1], algo=FEATURE_ALGO)
+	# featureDetection(frames[2][1], algo=FEATURE_ALGO)
 	# testMatch(frames[0][1], frames[1][1]) # feature matching example
+	# testMatch(frames[1][1], frames[2][1])
+	# testMatch(frames[0][1], frames[2][1])
 	points = featureMatching(frames, algo=FEATURE_ALGO)
 	exs = elimateTranslation(points)
 	RH, SH = factorization(exs, len(exs[0]))
