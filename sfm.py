@@ -7,7 +7,7 @@ from collections import defaultdict
 print("Load libraries success")
 
 INPUT_DIR = "./input/"
-IMG_SCALE_PERCENT = 20
+IMG_SCALE_PERCENT = 60
 FEATURE_ALGO = "SIFT"
 
 def getImages(directory):
@@ -212,11 +212,11 @@ def testMatch(img1, img2):
 
 if __name__ == "__main__":
 	frames = getImages(INPUT_DIR)
-	featureDetection(frames[0][1], algo=FEATURE_ALGO) # feature detection example
-	testMatch(frames[0][1], frames[1][1]) # feature matching example
-	ptss = featureMatching(frames, algo=FEATURE_ALGO)
-	exs = elimateTranslation(ptss)
+	# featureDetection(frames[0][1], algo=FEATURE_ALGO) # feature detection example
+	# testMatch(frames[0][1], frames[1][1]) # feature matching example
+	points = featureMatching(frames, algo=FEATURE_ALGO)
+	exs = elimateTranslation(points)
 	RH, SH = factorization(exs, len(exs[0]))
-	plot3d(SH)	
-	plotDelaunay(SH)
+	# plot3d(SH)	
+	# plotDelaunay(SH)
 	generatePlyFile(SH)
