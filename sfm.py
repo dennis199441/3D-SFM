@@ -127,6 +127,7 @@ def elimateTranslation(xt):
 
 def factorization(exs, numFeatures):	
 	# W is a 2*len(exs) by numFeatures matrix
+	print(f"numFeatures: {numFeatures}")
 	W = _buildMeasurementMatrix(exs, numFeatures)
 	U, S, V = svds(W, k=3) # Note: S is singular VECTOR
 	S = getSingularMatrix(S)
